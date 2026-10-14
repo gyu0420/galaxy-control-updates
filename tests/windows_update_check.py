@@ -79,7 +79,7 @@ with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-',ignore_cle
     # remain byte-for-byte the shipped code; preview mode exits after rendering.
     hook=tmp/'hook';hook.mkdir()
     screenshot=OUTPUT/'restarted-8.41.png'
-    (hook/'sitecustomize.py').write_text('import sys\nsys.argv.extend(["--preview",'+repr(str(screenshot))+'])\n')
+    (hook/'sitecustomize.py').write_text('import sys\nif sys.argv[0].endswith("launch.py"): sys.argv.extend(["--preview",'+repr(str(screenshot))+'])\n')
     os.environ['PYTHONPATH']=str(hook)
     children=[];errors=[]
     real_popen=subprocess.Popen
@@ -159,7 +159,7 @@ with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-',ignore_cle
         fresh=tmp/'fresh-local';fresh.mkdir()
         os.environ['LOCALAPPDATA']=str(fresh)
         first_screen=OUTPUT/'installed-8.41.png'
-        (hook/'sitecustomize.py').write_text('import sys\nsys.argv.extend(["--preview",'+repr(str(first_screen))+'])\n')
+        (hook/'sitecustomize.py').write_text('import sys\nif sys.argv[0].endswith("launch.py"): sys.argv.extend(["--preview",'+repr(str(first_screen))+'])\n')
         actual_installer=tmp/'Galaxy_Control_v8_41.vbs';actual_installer.write_bytes(shipped)
         installed=subprocess.run(['cscript.exe','//nologo',str(actual_installer)],capture_output=True,timeout=60)
         (OUTPUT/'installer-bootstrap.log').write_bytes(installed.stdout+installed.stderr)
@@ -182,7 +182,7 @@ with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-',ignore_cle
         assert 'GalaxyControl_v8_41' in desktop.stdout and 'robocrew.ico' in desktop.stdout and 'pythonw.exe' in desktop.stdout
         passed('Actual Windows desktop shortcut has the correct Python target, launcher and icon')
         second_screen=OUTPUT/'shortcut-restarted-8.41.png'
-        (hook/'sitecustomize.py').write_text('import sys\nsys.argv.extend(["--preview",'+repr(str(second_screen))+'])\n')
+        (hook/'sitecustomize.py').write_text('import sys\nif sys.argv[0].endswith("launch.py"): sys.argv.extend(["--preview",'+repr(str(second_screen))+'])\n')
         shortcut_script('Desktop','Start-Process -FilePath $p')
         deadline=time.monotonic()+40
         while not second_screen.exists() and time.monotonic()<deadline:time.sleep(.2)
