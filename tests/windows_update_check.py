@@ -136,7 +136,9 @@ with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-',ignore_cle
         registered=subprocess.run(ps+['-File',str(target/'SetStartup.ps1'),'-Enabled','1'],capture_output=True)
         (OUTPUT/'startup-registration.log').write_bytes(registered.stdout+registered.stderr)
         assert registered.returncode==0,(registered.stdout+registered.stderr).decode(errors='replace')
-        info=subprocess.run(ps+['-Command',"$s=New-Object -ComObject WScript.Shell; $p=Join-Path ([Environment]::GetFolderPath('Startup')) '갤럭시 관제소.lnk'; $l=$s.CreateShortcut($p); if (!(Test-Path -LiteralPath $p)) {exit 4}; Write-Output $l.Arguments"],check=True,capture_output=True,text=True)
+        verify_startup=tmp/'verify-startup.ps1'
+        verify_startup.write_text("[Console]::OutputEncoding = [Text.Encoding]::UTF8\n. '"+str(target/'ShortcutNative.ps1').replace("'","''")+"'\n$p=Join-Path ([Environment]::GetFolderPath('Startup')) '갤럭시 관제소.lnk'; if (!(Test-Path -LiteralPath $p)) {exit 4}; [GalaxyShortcutNative]::Read($p)",encoding='utf-8-sig')
+        info=subprocess.run(ps+['-File',str(verify_startup)],check=True,capture_output=True,encoding='utf-8')
         assert 'launch.py' in info.stdout
         subprocess.run(ps+['-File',str(target/'SetStartup.ps1'),'-Enabled','0'],check=True,capture_output=True)
         passed('Actual Windows PowerShell creates and removes the startup shortcut')
@@ -174,7 +176,7 @@ with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-',ignore_cle
         passed('Actual shipped VBS performs fresh Python environment setup, installs dependencies and really launches 8.41 on Windows')
         def shortcut_script(folder,extra=''):
             script=tmp/'verify-shortcut.ps1'
-            script.write_text("[Console]::OutputEncoding = [Text.Encoding]::UTF8\n$s=New-Object -ComObject WScript.Shell; $p=Join-Path ([Environment]::GetFolderPath('"+folder+"')) '갤럭시 관제소.lnk'; if (!(Test-Path -LiteralPath $p)) {exit 4}; $l=$s.CreateShortcut($p); Write-Output $l.TargetPath; Write-Output $l.Arguments; Write-Output $l.IconLocation; "+extra,encoding='utf-8-sig')
+            script.write_text("[Console]::OutputEncoding = [Text.Encoding]::UTF8\n. '"+str(extracted/'internal/ShortcutNative.ps1').replace("'","''")+"'\n$p=Join-Path ([Environment]::GetFolderPath('"+folder+"')) '갤럭시 관제소.lnk'; if (!(Test-Path -LiteralPath $p)) {exit 4}; [GalaxyShortcutNative]::Read($p); "+extra,encoding='utf-8-sig')
             return subprocess.run(ps+['-File',str(script)],check=True,capture_output=True,encoding='utf-8')
         desktop=shortcut_script('Desktop')
         assert 'GalaxyControl_v8_41' in desktop.stdout and 'robocrew.ico' in desktop.stdout and 'pythonw.exe' in desktop.stdout
