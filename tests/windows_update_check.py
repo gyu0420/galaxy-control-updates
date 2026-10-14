@@ -26,7 +26,7 @@ def passed(text):
 def fetch(url):
     with urllib.request.urlopen(url,timeout=30) as response:return response.read()
 
-with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-') as tmp:
+with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-',ignore_cleanup_errors=True) as tmp:
     tmp=Path(tmp)
     os.environ['LOCALAPPDATA']=str(tmp/'local')
     original=tmp/'original'/'internal';original.mkdir(parents=True)
@@ -106,7 +106,9 @@ with tempfile.TemporaryDirectory(prefix='galaxy-update-verification-') as tmp:
     passed('Reservation records, settings, crew progress, and chat settings survive the restart')
     if sys.platform=='win32':
         ps=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass']
-        subprocess.run(ps+['-File',str(target/'SetStartup.ps1'),'-Enabled','1'],check=True,capture_output=True)
+        registered=subprocess.run(ps+['-File',str(target/'SetStartup.ps1'),'-Enabled','1'],capture_output=True)
+        (OUTPUT/'startup-registration.log').write_bytes(registered.stdout+registered.stderr)
+        assert registered.returncode==0,(registered.stdout+registered.stderr).decode(errors='replace')
         info=subprocess.run(ps+['-Command',"$s=New-Object -ComObject WScript.Shell; $p=Join-Path ([Environment]::GetFolderPath('Startup')) '갤럭시 관제소.lnk'; $l=$s.CreateShortcut($p); if (!(Test-Path -LiteralPath $p)) {exit 4}; Write-Output $l.Arguments"],check=True,capture_output=True,text=True)
         assert 'launch.py' in info.stdout
         subprocess.run(ps+['-File',str(target/'SetStartup.ps1'),'-Enabled','0'],check=True,capture_output=True)
