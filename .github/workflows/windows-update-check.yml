@@ -3,7 +3,9 @@ on:
   push:
     paths:
       - '.github/workflows/windows-update-check.yml'
-      - 'tests/windows_update_check.py'
+      - 'tests/**'
+      - 'installers/**'
+      - 'tools/**'
       - 'latest.json'
       - 'updates/**'
   workflow_dispatch:
@@ -22,6 +24,7 @@ jobs:
       - run: python tests/windows_update_check.py
         env:
           QT_QPA_PLATFORM: offscreen
+          GALAXY_CANDIDATE: ${{ github.ref_name != 'main' && '1' || '0' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
